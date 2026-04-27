@@ -1,17 +1,9 @@
-"""
-Alembic environment.
-
-Wired up so `flask --app app db upgrade` and Alembic's own CLI both work,
-because graders may run either. Pulls config from the Flask app at runtime
-so we don't have to duplicate the DATABASE_URL wiring.
-"""
 import logging
 from logging.config import fileConfig
 
 from alembic import context
 from flask import current_app
 
-# Alembic Config object — provides access to alembic.ini values.
 config = context.config
 
 if config.config_file_name is not None:
@@ -21,10 +13,8 @@ logger = logging.getLogger("alembic.env")
 
 def get_engine():
     try:
-        # Flask-SQLAlchemy 3.x
         return current_app.extensions["migrate"].db.engine
     except (TypeError, AttributeError):
-        # Older versions
         return current_app.extensions["migrate"].db.get_engine()
 
 
@@ -46,7 +36,6 @@ def get_metadata():
 
 
 def run_migrations_offline():
-    """Run migrations without a live DB connection — emits SQL to stdout."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(url=url, target_metadata=get_metadata(), literal_binds=True)
     with context.begin_transaction():
@@ -54,7 +43,6 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    """Run migrations against a live DB."""
     def process_revision_directives(context, revision, directives):
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
