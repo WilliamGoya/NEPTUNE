@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ vessel.name or vessel.mmsi }} · Neptune{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('main.index') }}" class="back-link">← Back to dashboard</a>
+
+<section class="vessel-header">
+  <h1>{{ vessel.name or "Unnamed vessel" }}</h1>
+  <div class="vessel-id">
+    <span class="mono">MMSI {{ vessel.mmsi }}</span>
+    {% if vessel.imo %}<span class="mono">· IMO {{ vessel.imo }}</span>{% endif %}
+    {% if vessel.call_sign %}<span class="mono">· {{ vessel.call_sign }}</span>{% endif %}
+  </div>
+</section>
+
+<section class="vessel-meta">
+  <div class="meta-card">
+    <div class="meta-label">Type</div>
+    <div class="meta-value">{{ vessel.ship_type_label }}</div>
+  </div>
+  <div class="meta-card">
+    <div class="meta-label">Flag</div>
+    <div class="meta-value">{{ vessel.flag or "—" }}</div>
+  </div>
+  <div class="meta-card">
+    <div class="meta-label">Length</div>
+    <div class="meta-value">{{ "%.0f m"|format(vessel.length_m) if vessel.length_m else "—" }}</div>
+  </div>
+  <div class="meta-card">
+    <div class="meta-label">Beam</div>
+    <div class="meta-value">{{ "%.0f m"|format(vessel.beam_m) if vessel.beam_m else "—" }}</div>
+  </div>
+  <div class="meta-card">
+    <div class="meta-label">First seen</div>
+    <div class="meta-value">{{ vessel.first_seen.strftime("%Y-%m-%d") }}</div>
+  </div>
+  <div class="meta-card">
+    <div class="meta-label">Last seen</div>
+    <div class="meta-value">{{ vessel.last_seen.strftime("%Y-%m-%d %H:%M") }}</div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Track</h2>
+    <span class="muted">Last {{ positions|length }} position{{ '' if positions|length == 1 else 's' }}</span>
+  </div>
+  <div id="map" class="map"></div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Recent positions</h2>
+  </div>
+  {% if positions %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Timestamp (UTC)</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+        <th>Speed (kn)</th>
+        <th>Course</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in positions %}
+      <tr>
+        <td class="muted">{{ p.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        <td class="mono">{{ "%.4f"|format(p.latitude) }}</td>
+        <td class="mono">{{ "%.4f"|format(p.longitude) }}</td>
+        <td class="mono">{{ "%.1f"|format(p.sog_knots) if p.sog_knots is not none else "—" }}</td>
+        <td class="mono">{{ "%.0f°"|format(p.cog_degrees) if p.cog_degrees is not none else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><p>No positions on file yet.</p></div>
+  {% endif %}
+</section>
+
+<script>
+  (async function () {
+    const mmsi = {{ vessel.mmsi }};
+    const res = await fetch(`/api/positions/${mmsi}`);
+    const points = await res.json();
+    const map = L.map("map").setView([0, 0], 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+      maxZoom: 18,
+    }).addTo(map);
+
+    if (points.length === 0) {
+      document.querySelector("#map").innerHTML =
+        '<div class="empty"><p>No positions to plot yet.</p></div>';
+      return;
+    }
+
+    const latlngs = points.map(p => [p.lat, p.lon]);
+    L.polyline(latlngs, { color: "#3b82f6", weight: 3 }).addTo(map);
+
+    const latest = points[0];
+    L.marker([latest.lat, latest.lon])
+      .addTo(map)
+      .bindPopup(
+        `<strong>{{ vessel.name or vessel.mmsi }}</strong><br>` +
+        `${latest.sog?.toFixed(1) ?? "?"} kn · ${latest.cog?.toFixed(0) ?? "?"}°<br>` +
+        `${new Date(latest.ts).toUTCString()}`
+      )
+      .openPopup();
+
+    map.fitBounds(latlngs, { padding: [40, 40] });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Watchlist · Neptune{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Vessel watchlist</h1>
+  <p class="lede">Add a vessel by name or MMSI and Neptune will surface its position reports as soon as it's seen on AIS.</p>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Add a vessel</h2>
+  </div>
+  <form method="post" action="{{ url_for('main.track') }}" class="track-form">
+    <input
+      type="text"
+      name="query"
+      placeholder="Vessel name or 9-digit MMSI"
+      required
+      maxlength="120"
+      autofocus
+    />
+    <button type="submit">Add to watchlist</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Current watchlist</h2>
+    <span class="muted">{{ entries|length }} entr{{ 'y' if entries|length == 1 else 'ies' }}</span>
+  </div>
+
+  {% if entries %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Query</th>
+        <th>Submitted</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td><strong>{{ e.query }}</strong></td>
+        <td class="muted">{{ e.submitted_at.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td>
+          {% if e.matched_mmsi %}
+            <span class="badge badge-success">Tracking</span>
+          {% else %}
+            <span class="badge badge-pending">Awaiting first signal</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if e.matched_mmsi %}
+            <a href="{{ url_for('main.vessel_detail', mmsi=e.matched_mmsi) }}" class="link-arrow">View →</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <p>The watchlist is empty.</p>
+    <p class="muted">Try adding a well-known vessel name like "MAERSK SENTOSA" or any 9-digit MMSI.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

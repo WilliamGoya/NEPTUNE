@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Search · Neptune{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Search vessels</h1>
+  <p class="lede">Look up any vessel by name (partial match) or by 9-digit MMSI.</p>
+</section>
+
+<form method="get" action="{{ url_for('main.search') }}" class="search-form">
+  <input
+    type="text"
+    name="q"
+    value="{{ q }}"
+    placeholder="e.g. EVER GIVEN or 353136000"
+    autocomplete="off"
+    autofocus
+  />
+  <button type="submit">Search</button>
+</form>
+
+{% if q %}
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Results for "{{ q }}"</h2>
+      <span class="muted">{{ results|length }} vessel{{ '' if results|length == 1 else 's' }}</span>
+    </div>
+
+    {% if results %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>MMSI</th>
+            <th>IMO</th>
+            <th>Type</th>
+            <th>Last seen (UTC)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in results %}
+          <tr>
+            <td><strong>{{ v.name or "—" }}</strong></td>
+            <td class="mono">{{ v.mmsi }}</td>
+            <td class="mono">{{ v.imo or "—" }}</td>
+            <td><span class="badge">{{ v.ship_type_label }}</span></td>
+            <td class="muted">{{ v.last_seen.strftime("%Y-%m-%d %H:%M") }}</td>
+            <td><a href="{{ url_for('main.vessel_detail', mmsi=v.mmsi) }}" class="link-arrow">View →</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty">
+        <p>No vessels match that query.</p>
+        <p class="muted">Try a partial name, or add it to the <a href="{{ url_for('main.track') }}">watchlist</a> so the fetcher prioritizes it.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}
