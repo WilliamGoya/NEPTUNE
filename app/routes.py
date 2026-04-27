@@ -1,17 +1,6 @@
-"""
-HTTP routes.
-
-Five views:
-  GET  /            Dashboard — most recently active vessels
-  GET  /search      Search by name or MMSI
-  GET  /vessel/<mmsi>   Detail page with last 50 positions
-  GET  /track       Watchlist form
-  POST /track       Add a vessel name to the watchlist
-  GET  /api/positions/<mmsi>   JSON endpoint for the detail page map
-"""
 from datetime import timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 
 from app.db import db
 from app.models import Vessel, Position, WatchlistEntry, utcnow
@@ -21,7 +10,6 @@ bp = Blueprint("main", __name__)
 
 @bp.route("/")
 def index():
-    """Dashboard: vessels seen in the last 24 hours, newest first."""
     cutoff = utcnow() - timedelta(hours=24)
     stmt = (
         select(Vessel)
@@ -31,7 +19,6 @@ def index():
     )
     recent = db.session.execute(stmt).scalars().all()
 
-    # Quick stats for the header strip
     total_vessels = db.session.execute(select(func.count(Vessel.mmsi))).scalar_one()
     total_positions = db.session.execute(select(func.count(Position.id))).scalar_one()
     watchlist_count = db.session.execute(select(func.count(WatchlistEntry.id))).scalar_one()
@@ -49,11 +36,9 @@ def index():
 
 @bp.route("/search")
 def search():
-    """Search by partial name or exact MMSI."""
     q = (request.args.get("q") or "").strip()
     results = []
     if q:
-        # If the query is all digits and the right length, treat it as an MMSI.
         if q.isdigit() and len(q) == 9:
             stmt = select(Vessel).where(Vessel.mmsi == int(q))
         else:
@@ -73,7 +58,6 @@ def vessel_detail(mmsi: int):
     if vessel is None:
         abort(404)
 
-    # Latest 50 fixes, newest first
     stmt = (
         select(Position)
         .where(Position.vessel_mmsi == mmsi)
@@ -86,7 +70,6 @@ def vessel_detail(mmsi: int):
 
 @bp.route("/track", methods=["GET", "POST"])
 def track():
-    """Watchlist: GET shows the form + current entries, POST adds a new one."""
     if request.method == "POST":
         query = (request.form.get("query") or "").strip()
         if not query:
@@ -96,7 +79,6 @@ def track():
             flash("That's too long — max 120 characters.", "error")
             return redirect(url_for("main.track"))
 
-        # Idempotent insert: if the same query already exists, don't duplicate.
         existing = db.session.execute(
             select(WatchlistEntry).where(WatchlistEntry.query == query)
         ).scalar_one_or_none()
@@ -104,7 +86,6 @@ def track():
         if existing:
             flash(f"'{query}' is already on the watchlist.", "info")
         else:
-            # Try to match immediately if we already have data on this vessel.
             matched_mmsi = None
             if query.isdigit() and len(query) == 9:
                 v = db.session.get(Vessel, int(query))
@@ -136,7 +117,6 @@ def track():
 
 @bp.route("/api/positions/<int:mmsi>")
 def positions_json(mmsi: int):
-    """JSON feed for the detail-page map (consumed by Leaflet on the client)."""
     stmt = (
         select(Position)
         .where(Position.vessel_mmsi == mmsi)
@@ -158,7 +138,6 @@ def positions_json(mmsi: int):
 
 @bp.route("/health")
 def health():
-    """Simple health check for Render's uptime monitor."""
     try:
         db.session.execute(select(1))
         return {"status": "ok"}, 200
