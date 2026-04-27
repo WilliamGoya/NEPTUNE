@@ -45,73 +45,37 @@ disturbing the other.
 - **gunicorn** — production WSGI server
 - **Jinja2** — templating (bundled with Flask)
 
-## Quick start (Supabase + local Flask)
-
-This is the fastest path: Supabase provides the Postgres database, Flask runs
-locally for development, and you can deploy to Render later.
-
-**1. Create a Supabase project** at https://supabase.com (free tier works fine).
-Pick a region close to you. Wait ~2 minutes for it to provision.
-
-**2. Load the schema and seed data.** In the Supabase dashboard, open
-**SQL Editor → New query**, paste the contents of `scripts/supabase_seed.sql`,
-and click **Run**. This creates all three tables, indexes, and inserts 20 real
-vessels with ~80 position reports across the Mediterranean.
-
-**3. Get your connection string.** In Supabase, go to **Project Settings →
-Database → Connection string → URI**, switch the mode to **Session pooler**
-(port 5432), and copy the URL. It looks like:
-`postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres`
-
-**4. Set up the project locally.**
+## Local setup
 
 ```bash
-git clone <your-repo-url>
+# 1. Clone and enter the repo
 cd neptune
 
+# 2. Create a virtual environment
 python -m venv venv
 source venv/bin/activate    # Windows: venv\Scripts\activate
 
+# 3. Install dependencies
 pip install -r requirements.txt
 
+# 4. Copy the env template and fill in values
 cp .env.example .env
-# Edit .env:
-#   DATABASE_URL=<the Supabase URL from step 3>
-#   AISSTREAM_API_KEY=<get one free at https://aisstream.io>
-#   SECRET_KEY=<run: python -c "import secrets; print(secrets.token_hex(32))">
-```
+# Edit .env: set AISSTREAM_API_KEY (free at https://aisstream.io)
 
-**5. Run the web app.**
+# 5. Initialize the database
+flask --app app db upgrade
 
-```bash
-flask --app app run --debug
-```
+# 6. Seed the watchlist with a few demo vessels (optional)
+python scripts/seed.py
 
-Open http://localhost:5000 — you should see the dashboard populated with the
-20 seeded vessels.
-
-**6. (Optional) Run the AIS fetcher** in a separate terminal to ingest live
-data on top of the seed:
-
-```bash
+# 7. In one terminal, run the AIS fetcher
 python fetcher.py
-```
 
-## Alternative: pure local SQLite (no Supabase)
-
-If you want to develop without any cloud dependencies:
-
-```bash
-cp .env.example .env
-# Leave DATABASE_URL as the SQLite default
-
-flask --app app db upgrade       # creates the schema
-python scripts/seed.py           # adds 5 demo vessels (Python-based seed)
+# 8. In another terminal, run the web app
 flask --app app run --debug
 ```
 
-The Python seed (`scripts/seed.py`) is smaller than the SQL seed but works
-on every database backend.
+Open http://localhost:5000.
 
 ## Database schema
 
@@ -162,8 +126,7 @@ neptune/
 │   ├── alembic.ini
 │   └── versions/
 ├── scripts/
-│   ├── seed.py              # Python-based demo data loader (any DB)
-│   └── supabase_seed.sql    # SQL seed for Supabase (20 real vessels)
+│   └── seed.py              # Demo data loader
 ├── fetcher.py               # AIS ingestion process
 ├── requirements.txt
 ├── render.yaml              # Render blueprint
