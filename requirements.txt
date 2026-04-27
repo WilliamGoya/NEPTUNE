@@ -1,0 +1,9 @@
+Flask==3.0.3
+SQLAlchemy==2.0.36
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+alembic==1.13.3
+psycopg2-binary==2.9.10
+gunicorn==23.0.0
+websockets==13.1
+python-dotenv==1.0.1

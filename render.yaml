@@ -1,0 +1,53 @@
+# Render Blueprint: declares every piece of Neptune's production infrastructure.
+# Push this file with the repo and Render will create all three resources.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ---- Web service: the Flask app ----
+  - type: web
+    name: neptune-web
+    runtime: python
+    region: frankfurt
+    plan: free
+    branch: main
+    buildCommand: "pip install -r requirements.txt && flask --app app db upgrade"
+    startCommand: "gunicorn 'app:create_app()' --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neptune-db
+          property: connectionString
+      - key: AISSTREAM_API_KEY
+        sync: false        # Set manually in Render dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.12.0
+
+  # ---- Background worker: the AIS fetcher ----
+  - type: worker
+    name: neptune-fetcher
+    runtime: python
+    region: frankfurt
+    plan: free
+    branch: main
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python fetcher.py"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neptune-db
+          property: connectionString
+      - key: AISSTREAM_API_KEY
+        sync: false
+      - key: AIS_BOUNDING_BOX
+        value: "30.0,-6.0,46.0,36.0"
+      - key: PYTHON_VERSION
+        value: 3.12.0
+
+databases:
+  - name: neptune-db
+    region: frankfurt
+    plan: free
+    postgresMajorVersion: 16
