@@ -38,11 +38,31 @@ CREATE TABLE IF NOT EXISTS watchlist (
     CONSTRAINT uq_watchlist_query UNIQUE (query)
 );
 
+CREATE TABLE IF NOT EXISTS ports (
+    id          BIGSERIAL PRIMARY KEY,
+    name        VARCHAR(120) NOT NULL UNIQUE,
+    country     VARCHAR(3),
+    latitude    DOUBLE PRECISION NOT NULL,
+    longitude   DOUBLE PRECISION NOT NULL,
+    radius_km   DOUBLE PRECISION NOT NULL DEFAULT 15.0
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id          BIGSERIAL PRIMARY KEY,
+    session_id  VARCHAR(64) NOT NULL,
+    role        VARCHAR(16) NOT NULL,
+    content     TEXT NOT NULL,
+    created_at  TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+);
+
+CREATE INDEX IF NOT EXISTS ix_chat_messages_session_id ON chat_messages (session_id);
+CREATE INDEX IF NOT EXISTS ix_chat_messages_created_at ON chat_messages (created_at);
+
 CREATE TABLE IF NOT EXISTS alembic_version (
     version_num VARCHAR(32) NOT NULL PRIMARY KEY
 );
-INSERT INTO alembic_version (version_num) VALUES ('0001_initial')
-  ON CONFLICT (version_num) DO NOTHING;
+INSERT INTO alembic_version (version_num) VALUES ('0002_ports_chat')
+  ON CONFLICT (version_num) DO UPDATE SET version_num = '0002_ports_chat';
 
 
 INSERT INTO vessels (mmsi, imo, name, call_sign, ship_type, flag, length_m, beam_m, first_seen, last_seen) VALUES
@@ -69,13 +89,29 @@ INSERT INTO vessels (mmsi, imo, name, call_sign, ship_type, flag, length_m, beam
 ON CONFLICT (mmsi) DO NOTHING;
 
 
+INSERT INTO ports (name, country, latitude, longitude, radius_km) VALUES
+    ('Algeciras',  'ESP', 36.13,  -5.45,  20.0),
+    ('Valencia',   'ESP', 39.45,  -0.32,  18.0),
+    ('Barcelona',  'ESP', 41.34,   2.17,  18.0),
+    ('Marseille',  'FRA', 43.30,   5.37,  20.0),
+    ('Genoa',      'ITA', 44.41,   8.93,  18.0),
+    ('Naples',     'ITA', 40.84,  14.25,  18.0),
+    ('Piraeus',    'GRC', 37.94,  23.65,  18.0),
+    ('Tangier',    'MAR', 35.78,  -5.78,  18.0),
+    ('Lisbon',     'PRT', 38.70,  -9.20,  20.0),
+    ('Cartagena',  'ESP', 37.60,  -1.00,  15.0),
+    ('Palma',      'ESP', 39.57,   2.65,  15.0),
+    ('Valletta',   'MLT', 35.90,  14.51,  15.0)
+ON CONFLICT (name) DO NOTHING;
+
+
 INSERT INTO positions (vessel_mmsi, timestamp, latitude, longitude, sog_knots, cog_degrees, heading_degrees, nav_status) VALUES
     (255805953, NOW() - INTERVAL '6 hours',     36.10, -3.20,  18.5, 268, 268, 0),
     (255805953, NOW() - INTERVAL '4 hours',     36.05, -3.95,  18.2, 265, 265, 0),
     (255805953, NOW() - INTERVAL '2 hours',     36.02, -4.70,  17.8, 263, 263, 0),
     (255805953, NOW() - INTERVAL '1 hour',      36.00, -5.10,  16.5, 260, 260, 0),
     (255805953, NOW() - INTERVAL '30 minutes',  35.98, -5.30,  14.2, 258, 258, 0),
-    (255805953, NOW() - INTERVAL '4 minutes',   35.96, -5.36,  12.0, 255, 255, 0),
+    (255805953, NOW() - INTERVAL '4 minutes',   36.13, -5.42,  4.0,  255, 255, 0),
 
     (538008149, NOW() - INTERVAL '5 hours',     36.13, -5.42,  0.2, 0,   180, 1),
     (538008149, NOW() - INTERVAL '3 hours',     36.13, -5.42,  0.1, 0,   180, 1),
@@ -94,79 +130,79 @@ INSERT INTO positions (vessel_mmsi, timestamp, latitude, longitude, sog_knots, c
     (477553400, NOW() - INTERVAL '2 hours',     39.45,  5.50,  17.1, 267, 267, 0),
     (477553400, NOW() - INTERVAL '22 minutes',  39.43,  4.92,  16.8, 266, 266, 0),
 
-    (636019825, NOW() - INTERVAL '4 hours',     35.78, -5.78,  0.3, 0,   90,  1),
-    (636019825, NOW() - INTERVAL '2 hours',     35.78, -5.78,  0.1, 0,   90,  1),
-    (636019825, NOW() - INTERVAL '6 minutes',   35.78, -5.78,  0.0, 0,   90,  1),
+    (636019825, NOW() - INTERVAL '4 hours',     35.78, -5.78, 0.3, 0,   90,  1),
+    (636019825, NOW() - INTERVAL '2 hours',     35.78, -5.78, 0.1, 0,   90,  1),
+    (636019825, NOW() - INTERVAL '6 minutes',   35.78, -5.78, 0.0, 0,   90,  1),
 
     (566123000, NOW() - INTERVAL '5 hours',     35.20,  1.50,  16.5, 45,  45,  0),
     (566123000, NOW() - INTERVAL '3 hours',     35.85,  2.00,  16.8, 42,  42,  0),
     (566123000, NOW() - INTERVAL '1 hour',      36.40,  2.40,  16.5, 40,  40,  0),
     (566123000, NOW() - INTERVAL '17 minutes',  36.62,  2.55,  16.2, 40,  40,  0),
 
-    (218765000, NOW() - INTERVAL '3 hours',     36.05, -5.20,  12.5, 270, 270, 0),
-    (218765000, NOW() - INTERVAL '1 hour',      36.10, -5.35,  8.0,  290, 290, 0),
-    (218765000, NOW() - INTERVAL '3 minutes',   36.13, -5.42,  4.5,  315, 315, 0),
+    (218765000, NOW() - INTERVAL '3 hours',     36.05, -5.20, 12.5, 270, 270, 0),
+    (218765000, NOW() - INTERVAL '1 hour',      36.10, -5.35,  8.0, 290, 290, 0),
+    (218765000, NOW() - INTERVAL '3 minutes',   36.13, -5.42,  4.5, 315, 315, 5),
 
-    (244730000, NOW() - INTERVAL '6 hours',     40.20,  0.50,  13.5, 195, 195, 0),
-    (244730000, NOW() - INTERVAL '4 hours',     39.65,  0.20,  13.2, 192, 192, 0),
-    (244730000, NOW() - INTERVAL '2 hours',     39.10, -0.05,  13.0, 190, 190, 0),
-    (244730000, NOW() - INTERVAL '34 minutes',  38.95, -0.12,  12.8, 188, 188, 0),
+    (244730000, NOW() - INTERVAL '6 hours',     40.20,  0.50, 13.5, 195, 195, 0),
+    (244730000, NOW() - INTERVAL '4 hours',     39.65,  0.20, 13.2, 192, 192, 0),
+    (244730000, NOW() - INTERVAL '2 hours',     39.10, -0.05, 13.0, 190, 190, 0),
+    (244730000, NOW() - INTERVAL '34 minutes',  39.45, -0.32,  4.0, 188, 188, 5),
 
-    (538090212, NOW() - INTERVAL '6 hours',     37.10, 11.20,  14.0, 95,  95,  0),
-    (538090212, NOW() - INTERVAL '4 hours',     37.05, 12.00,  14.2, 92,  92,  0),
-    (538090212, NOW() - INTERVAL '2 hours',     37.00, 12.85,  14.1, 90,  90,  0),
-    (538090212, NOW() - INTERVAL '15 minutes',  36.96, 13.30,  13.9, 88,  88,  0),
+    (538090212, NOW() - INTERVAL '6 hours',     37.10, 11.20, 14.0, 95,  95,  0),
+    (538090212, NOW() - INTERVAL '4 hours',     37.05, 12.00, 14.2, 92,  92,  0),
+    (538090212, NOW() - INTERVAL '2 hours',     37.00, 12.85, 14.1, 90,  90,  0),
+    (538090212, NOW() - INTERVAL '15 minutes',  36.96, 13.30, 13.9, 88,  88,  0),
 
-    (311000898, NOW() - INTERVAL '8 hours',     37.60, -1.00,  0.0, 0,   45,  5),
-    (311000898, NOW() - INTERVAL '4 hours',     37.60, -1.00,  0.0, 0,   45,  5),
-    (311000898, NOW() - INTERVAL '28 minutes',  37.60, -1.00,  0.0, 0,   45,  5),
+    (311000898, NOW() - INTERVAL '8 hours',     37.60, -1.00, 0.0, 0,   45,  5),
+    (311000898, NOW() - INTERVAL '4 hours',     37.60, -1.00, 0.0, 0,   45,  5),
+    (311000898, NOW() - INTERVAL '28 minutes',  37.60, -1.00, 0.0, 0,   45,  5),
 
-    (636092174, NOW() - INTERVAL '5 hours',     37.80, 14.50,  13.5, 88,  88,  0),
-    (636092174, NOW() - INTERVAL '3 hours',     37.85, 15.40,  13.2, 86,  86,  0),
-    (636092174, NOW() - INTERVAL '11 minutes',  37.88, 16.20,  13.0, 84,  84,  0),
+    (636092174, NOW() - INTERVAL '5 hours',     37.80, 14.50, 13.5, 88,  88, 0),
+    (636092174, NOW() - INTERVAL '3 hours',     37.85, 15.40, 13.2, 86,  86, 0),
+    (636092174, NOW() - INTERVAL '11 minutes',  37.88, 16.20, 13.0, 84,  84, 0),
 
-    (215418000, NOW() - INTERVAL '4 hours',     37.95, 23.65,  10.5, 175, 175, 0),
-    (215418000, NOW() - INTERVAL '2 hours',     37.78, 23.70,  10.2, 178, 178, 0),
-    (215418000, NOW() - INTERVAL '7 minutes',   37.65, 23.72,  9.8,  180, 180, 0),
+    (215418000, NOW() - INTERVAL '4 hours',     37.95, 23.65, 10.5, 175, 175, 0),
+    (215418000, NOW() - INTERVAL '2 hours',     37.95, 23.65,  3.0, 178, 178, 5),
+    (215418000, NOW() - INTERVAL '7 minutes',   37.94, 23.65,  0.0, 180, 180, 5),
 
-    (210567000, NOW() - INTERVAL '6 hours',     43.20, 15.50,  12.0, 135, 135, 0),
-    (210567000, NOW() - INTERVAL '4 hours',     42.85, 16.10,  12.2, 138, 138, 0),
-    (210567000, NOW() - INTERVAL '2 hours',     42.50, 16.80,  12.1, 140, 140, 0),
-    (210567000, NOW() - INTERVAL '19 minutes',  42.40, 17.05,  12.0, 140, 140, 0),
+    (210567000, NOW() - INTERVAL '6 hours',     43.20, 15.50, 12.0, 135, 135, 0),
+    (210567000, NOW() - INTERVAL '4 hours',     42.85, 16.10, 12.2, 138, 138, 0),
+    (210567000, NOW() - INTERVAL '2 hours',     42.50, 16.80, 12.1, 140, 140, 0),
+    (210567000, NOW() - INTERVAL '19 minutes',  42.40, 17.05, 12.0, 140, 140, 0),
 
-    (215280000, NOW() - INTERVAL '3 hours',     37.95, 23.62,  18.0, 95,  95,  0),
-    (215280000, NOW() - INTERVAL '2 hours',     37.85, 24.30,  19.5, 100, 100, 0),
-    (215280000, NOW() - INTERVAL '1 hour',      37.65, 25.05,  20.0, 105, 105, 0),
-    (215280000, NOW() - INTERVAL '5 minutes',   37.50, 25.32,  19.8, 108, 108, 0),
+    (215280000, NOW() - INTERVAL '3 hours',     37.95, 23.62, 18.0, 95,  95, 0),
+    (215280000, NOW() - INTERVAL '2 hours',     37.85, 24.30, 19.5, 100, 100, 0),
+    (215280000, NOW() - INTERVAL '1 hour',      37.65, 25.05, 20.0, 105, 105, 0),
+    (215280000, NOW() - INTERVAL '5 minutes',   37.50, 25.32, 19.8, 108, 108, 0),
 
-    (247234600, NOW() - INTERVAL '4 hours',     41.80, 11.20,  21.0, 175, 175, 0),
-    (247234600, NOW() - INTERVAL '2 hours',     41.10, 11.05,  21.2, 178, 178, 0),
-    (247234600, NOW() - INTERVAL '14 minutes',  40.95, 11.02,  21.0, 180, 180, 0),
+    (247234600, NOW() - INTERVAL '4 hours',     41.80, 11.20, 21.0, 175, 175, 0),
+    (247234600, NOW() - INTERVAL '2 hours',     41.10, 11.05, 21.2, 178, 178, 0),
+    (247234600, NOW() - INTERVAL '14 minutes',  40.84, 14.25,  3.5, 180, 180, 5),
 
-    (224118660, NOW() - INTERVAL '5 hours',     39.55,  2.65,  22.0, 85,  85,  0),
-    (224118660, NOW() - INTERVAL '3 hours',     39.60,  3.55,  22.5, 88,  88,  0),
-    (224118660, NOW() - INTERVAL '1 hour',      39.62,  4.50,  22.2, 90,  90,  0),
-    (224118660, NOW() - INTERVAL '9 minutes',   39.62,  4.95,  21.8, 92,  92,  0),
+    (224118660, NOW() - INTERVAL '5 hours',     39.55,  2.65, 22.0, 85,  85, 0),
+    (224118660, NOW() - INTERVAL '3 hours',     39.60,  3.55, 22.5, 88,  88, 0),
+    (224118660, NOW() - INTERVAL '1 hour',      39.62,  4.50, 22.2, 90,  90, 0),
+    (224118660, NOW() - INTERVAL '9 minutes',   39.57,  2.65,  4.0, 92,  92, 5),
 
-    (311000789, NOW() - INTERVAL '6 hours',     41.20, 12.10,  18.5, 145, 145, 0),
-    (311000789, NOW() - INTERVAL '4 hours',     40.80, 12.95,  18.2, 148, 148, 0),
-    (311000789, NOW() - INTERVAL '2 hours',     40.40, 13.85,  18.0, 150, 150, 0),
-    (311000789, NOW() - INTERVAL '21 minutes',  40.25, 14.18,  17.8, 152, 152, 0),
+    (311000789, NOW() - INTERVAL '6 hours',     41.20, 12.10, 18.5, 145, 145, 0),
+    (311000789, NOW() - INTERVAL '4 hours',     40.80, 12.95, 18.2, 148, 148, 0),
+    (311000789, NOW() - INTERVAL '2 hours',     40.84, 14.25,  6.0, 150, 150, 0),
+    (311000789, NOW() - INTERVAL '21 minutes',  40.84, 14.25,  0.0, 152, 152, 5),
 
-    (538090456, NOW() - INTERVAL '8 hours',     38.50,  6.20,  11.0, 268, 268, 0),
-    (538090456, NOW() - INTERVAL '5 hours',     38.42,  5.05,  11.2, 266, 266, 0),
-    (538090456, NOW() - INTERVAL '2 hours',     38.35,  3.85,  11.0, 264, 264, 0),
-    (538090456, NOW() - INTERVAL '26 minutes',  38.32,  3.40,  10.8, 263, 263, 0),
+    (538090456, NOW() - INTERVAL '8 hours',     38.50,  6.20, 11.0, 268, 268, 0),
+    (538090456, NOW() - INTERVAL '5 hours',     38.42,  5.05, 11.2, 266, 266, 0),
+    (538090456, NOW() - INTERVAL '2 hours',     38.35,  3.85, 11.0, 264, 264, 0),
+    (538090456, NOW() - INTERVAL '26 minutes',  38.32,  3.40, 10.8, 263, 263, 0),
 
-    (255805612, NOW() - INTERVAL '6 hours',     37.10, -8.95,  15.5, 5,   5,   0),
-    (255805612, NOW() - INTERVAL '4 hours',     37.85, -9.10,  15.2, 8,   8,   0),
-    (255805612, NOW() - INTERVAL '2 hours',     38.55, -9.20,  15.0, 10,  10,  0),
-    (255805612, NOW() - INTERVAL '13 minutes',  38.78, -9.22,  14.8, 12,  12,  0),
+    (255805612, NOW() - INTERVAL '6 hours',     37.10, -8.95, 15.5, 5,   5,  0),
+    (255805612, NOW() - INTERVAL '4 hours',     37.85, -9.10, 15.2, 8,   8,  0),
+    (255805612, NOW() - INTERVAL '2 hours',     38.55, -9.20, 15.0, 10,  10, 0),
+    (255805612, NOW() - INTERVAL '13 minutes',  38.70, -9.20,  3.5, 12,  12, 5),
 
-    (224089000, NOW() - INTERVAL '4 hours',     36.13, -5.35,  8.5,  90,  90,  0),
-    (224089000, NOW() - INTERVAL '2 hours',     36.10, -5.20,  10.2, 95,  95,  0),
-    (224089000, NOW() - INTERVAL '1 hour',      36.08, -5.05,  12.5, 88,  88,  0),
-    (224089000, NOW() - INTERVAL '2 minutes',   36.07, -4.95,  14.0, 85,  85,  0)
+    (224089000, NOW() - INTERVAL '4 hours',     36.13, -5.35,  8.5, 90,  90, 0),
+    (224089000, NOW() - INTERVAL '2 hours',     36.10, -5.20, 10.2, 95,  95, 0),
+    (224089000, NOW() - INTERVAL '1 hour',      36.08, -5.05, 12.5, 88,  88, 0),
+    (224089000, NOW() - INTERVAL '2 minutes',   36.13, -5.45,  6.0, 85,  85, 0)
 ON CONFLICT DO NOTHING;
 
 
@@ -181,4 +217,6 @@ SELECT 'vessels'   AS table_name, COUNT(*) AS row_count FROM vessels
 UNION ALL
 SELECT 'positions',                COUNT(*)             FROM positions
 UNION ALL
-SELECT 'watchlist',                COUNT(*)             FROM watchlist;
+SELECT 'watchlist',                COUNT(*)             FROM watchlist
+UNION ALL
+SELECT 'ports',                    COUNT(*)             FROM ports;
