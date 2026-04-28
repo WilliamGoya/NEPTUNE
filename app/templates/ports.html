@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Ports · Neptune{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Port activity</h1>
+  <p class="lede">Live picture of vessels in or near major Mediterranean and Atlantic ports — updated each time AIS reports a new position.</p>
+</section>
+
+<section class="port-grid">
+  {% for port in ports %}
+    {% set port_vessels = by_port[port.id] %}
+    <div class="port-card">
+      <div class="port-card-header">
+        <div>
+          <h3>{{ port.name }}</h3>
+          <span class="muted">{{ port.country }} · {{ "%.2f, %.2f"|format(port.latitude, port.longitude) }}</span>
+        </div>
+        <div class="port-count">
+          <span class="port-count-num">{{ port_vessels|length }}</span>
+          <span class="port-count-lbl">vessel{{ '' if port_vessels|length == 1 else 's' }}</span>
+        </div>
+      </div>
+
+      {% if port_vessels %}
+        <ul class="port-list">
+          {% for v, p in port_vessels[:8] %}
+          <li>
+            <a href="{{ url_for('main.vessel_detail', mmsi=v.mmsi) }}">
+              <span class="port-vessel-name">{{ v.name or v.mmsi }}</span>
+              <span class="badge badge-{{ v.ship_type_label|lower|replace(' ', '-')|replace('/', '-') }}">{{ v.ship_type_label }}</span>
+              <span class="muted port-vessel-status">{{ p.nav_status_label }}</span>
+            </a>
+          </li>
+          {% endfor %}
+          {% if port_vessels|length > 8 %}
+            <li class="muted">…and {{ port_vessels|length - 8 }} more</li>
+          {% endif %}
+        </ul>
+      {% else %}
+        <p class="port-empty muted">No vessels in range right now.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>At sea / unmatched</h2>
+    <span class="muted">{{ at_sea|length }} vessel{{ '' if at_sea|length == 1 else 's' }} not within port radius</span>
+  </div>
+  {% if at_sea %}
+  <table class="table">
+    <thead>
+      <tr><th>Name</th><th>Type</th><th>Position</th><th>Speed</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for v, p in at_sea[:30] %}
+      <tr>
+        <td><strong>{{ v.name or v.mmsi }}</strong></td>
+        <td><span class="badge badge-{{ v.ship_type_label|lower|replace(' ', '-')|replace('/', '-') }}">{{ v.ship_type_label }}</span></td>
+        <td class="mono">{{ "%.2f, %.2f"|format(p.latitude, p.longitude) }}</td>
+        <td class="mono">{{ "%.1f kn"|format(p.sog_knots) if p.sog_knots is not none else "—" }}</td>
+        <td class="muted">{{ p.nav_status_label }}</td>
+        <td><a href="{{ url_for('main.vessel_detail', mmsi=v.mmsi) }}" class="link-arrow">View →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><p>All tracked vessels are within port radius.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

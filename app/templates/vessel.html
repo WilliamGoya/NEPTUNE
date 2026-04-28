@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{{ url_for('main.index') }}" class="back-link">← Back to dashboard</a>
+<a href="{{ url_for('main.dashboard') }}" class="back-link">← Back to dashboard</a>
 
 <section class="vessel-header">
   <h1>{{ vessel.name or "Unnamed vessel" }}</h1>
@@ -20,31 +20,34 @@
   </div>
 </section>
 
+{% if latest %}
+<section class="vessel-current">
+  <div class="current-card">
+    <span class="current-label">Current status</span>
+    <span class="current-value">{{ latest.nav_status_label }}</span>
+  </div>
+  <div class="current-card">
+    <span class="current-label">Speed</span>
+    <span class="current-value">{{ "%.1f"|format(latest.sog_knots) }}<span class="kpi-unit">kn</span></span>
+  </div>
+  <div class="current-card">
+    <span class="current-label">Course</span>
+    <span class="current-value">{{ "%.0f"|format(latest.cog_degrees) if latest.cog_degrees is not none else "—" }}<span class="kpi-unit">°</span></span>
+  </div>
+  <div class="current-card">
+    <span class="current-label">Position</span>
+    <span class="current-value-sm mono">{{ "%.3f"|format(latest.latitude) }}, {{ "%.3f"|format(latest.longitude) }}</span>
+  </div>
+</section>
+{% endif %}
+
 <section class="vessel-meta">
-  <div class="meta-card">
-    <div class="meta-label">Type</div>
-    <div class="meta-value">{{ vessel.ship_type_label }}</div>
-  </div>
-  <div class="meta-card">
-    <div class="meta-label">Flag</div>
-    <div class="meta-value">{{ vessel.flag or "—" }}</div>
-  </div>
-  <div class="meta-card">
-    <div class="meta-label">Length</div>
-    <div class="meta-value">{{ "%.0f m"|format(vessel.length_m) if vessel.length_m else "—" }}</div>
-  </div>
-  <div class="meta-card">
-    <div class="meta-label">Beam</div>
-    <div class="meta-value">{{ "%.0f m"|format(vessel.beam_m) if vessel.beam_m else "—" }}</div>
-  </div>
-  <div class="meta-card">
-    <div class="meta-label">First seen</div>
-    <div class="meta-value">{{ vessel.first_seen.strftime("%Y-%m-%d") }}</div>
-  </div>
-  <div class="meta-card">
-    <div class="meta-label">Last seen</div>
-    <div class="meta-value">{{ vessel.last_seen.strftime("%Y-%m-%d %H:%M") }}</div>
-  </div>
+  <div class="meta-card"><div class="meta-label">Type</div><div class="meta-value">{{ vessel.ship_type_label }}</div></div>
+  <div class="meta-card"><div class="meta-label">Flag</div><div class="meta-value">{{ vessel.flag or "—" }}</div></div>
+  <div class="meta-card"><div class="meta-label">Length</div><div class="meta-value">{{ "%.0f m"|format(vessel.length_m) if vessel.length_m else "—" }}</div></div>
+  <div class="meta-card"><div class="meta-label">Beam</div><div class="meta-value">{{ "%.0f m"|format(vessel.beam_m) if vessel.beam_m else "—" }}</div></div>
+  <div class="meta-card"><div class="meta-label">First seen</div><div class="meta-value">{{ vessel.first_seen.strftime("%Y-%m-%d") }}</div></div>
+  <div class="meta-card"><div class="meta-label">Last seen</div><div class="meta-value">{{ vessel.last_seen.strftime("%Y-%m-%d %H:%M") }}</div></div>
 </section>
 
 <section class="panel">
@@ -56,9 +59,7 @@
 </section>
 
 <section class="panel">
-  <div class="panel-header">
-    <h2>Recent positions</h2>
-  </div>
+  <div class="panel-header"><h2>Recent positions</h2></div>
   {% if positions %}
   <table class="table">
     <thead>
@@ -68,6 +69,7 @@
         <th>Longitude</th>
         <th>Speed (kn)</th>
         <th>Course</th>
+        <th>Status</th>
       </tr>
     </thead>
     <tbody>
@@ -78,6 +80,7 @@
         <td class="mono">{{ "%.4f"|format(p.longitude) }}</td>
         <td class="mono">{{ "%.1f"|format(p.sog_knots) if p.sog_knots is not none else "—" }}</td>
         <td class="mono">{{ "%.0f°"|format(p.cog_degrees) if p.cog_degrees is not none else "—" }}</td>
+        <td class="muted">{{ p.nav_status_label }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -99,8 +102,7 @@
     }).addTo(map);
 
     if (points.length === 0) {
-      document.querySelector("#map").innerHTML =
-        '<div class="empty"><p>No positions to plot yet.</p></div>';
+      document.querySelector("#map").innerHTML = '<div class="empty"><p>No positions to plot yet.</p></div>';
       return;
     }
 
@@ -108,14 +110,12 @@
     L.polyline(latlngs, { color: "#3b82f6", weight: 3 }).addTo(map);
 
     const latest = points[0];
-    L.marker([latest.lat, latest.lon])
-      .addTo(map)
+    L.marker([latest.lat, latest.lon]).addTo(map)
       .bindPopup(
         `<strong>{{ vessel.name or vessel.mmsi }}</strong><br>` +
         `${latest.sog?.toFixed(1) ?? "?"} kn · ${latest.cog?.toFixed(0) ?? "?"}°<br>` +
         `${new Date(latest.ts).toUTCString()}`
-      )
-      .openPopup();
+      ).openPopup();
 
     map.fitBounds(latlngs, { padding: [40, 40] });
   })();

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Fleet analytics · Neptune{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Fleet analytics</h1>
+  <p class="lede">Composition, capacity, and operational state of the entire tracked fleet.</p>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-label">Active vessels</div>
+    <div class="kpi-value">{{ active_count }}</div>
+    <div class="kpi-sub">with current position fix</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Average length</div>
+    <div class="kpi-value">{{ "%.0f"|format(avg_length) }}<span class="kpi-unit">m</span></div>
+    <div class="kpi-sub">across measured vessels</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Total LOA</div>
+    <div class="kpi-value">{{ "%.1f"|format(total_length / 1000) }}<span class="kpi-unit">km</span></div>
+    <div class="kpi-sub">combined length of fleet</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Average speed</div>
+    <div class="kpi-value">{{ "%.1f"|format(avg_speed) }}<span class="kpi-unit">kn</span></div>
+    <div class="kpi-sub">vessels under way</div>
+  </div>
+</section>
+
+<section class="charts-grid">
+  <div class="panel">
+    <div class="panel-header"><h2>Composition by type</h2></div>
+    <div class="bar-chart">
+      {% set max_count = type_data[0][1] if type_data else 1 %}
+      {% for label, count in type_data %}
+      <div class="bar-row">
+        <div class="bar-label">{{ label }}</div>
+        <div class="bar-track">
+          <div class="bar-fill bar-{{ label|lower|replace(' ', '-')|replace('/', '-') }}" style="width: {{ (count / max_count * 100)|round(1) }}%;">
+            <span class="bar-value">{{ count }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h2>Top flags</h2></div>
+    <div class="bar-chart">
+      {% set max_flag = flag_data[0][1] if flag_data else 1 %}
+      {% for flag, count in flag_data %}
+      <div class="bar-row">
+        <div class="bar-label">{{ flag }}</div>
+        <div class="bar-track">
+          <div class="bar-fill bar-flag" style="width: {{ (count / max_flag * 100)|round(1) }}%;">
+            <span class="bar-value">{{ count }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel charts-wide">
+    <div class="panel-header"><h2>Navigational status</h2></div>
+    <div class="status-chart">
+      {% set total_status = status_data|map(attribute=1)|sum %}
+      <div class="stacked-bar">
+        {% for label, count in status_data %}
+          {% set pct = (count / total_status * 100)|round(1) if total_status else 0 %}
+          <div class="stacked-segment status-{{ loop.index }}" style="width: {{ pct }}%;" title="{{ label }}: {{ count }}"></div>
+        {% endfor %}
+      </div>
+      <div class="status-legend">
+        {% for label, count in status_data %}
+          {% set pct = (count / total_status * 100)|round(1) if total_status else 0 %}
+          <div class="status-legend-item">
+            <span class="legend-dot status-{{ loop.index }}"></span>
+            <span>{{ label }}</span>
+            <span class="muted">{{ count }} ({{ pct }}%)</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

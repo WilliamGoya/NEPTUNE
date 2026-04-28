@@ -44,7 +44,7 @@
             <td><strong>{{ v.name or "—" }}</strong></td>
             <td class="mono">{{ v.mmsi }}</td>
             <td class="mono">{{ v.imo or "—" }}</td>
-            <td><span class="badge">{{ v.ship_type_label }}</span></td>
+            <td><span class="badge badge-{{ v.ship_type_label|lower|replace(' ', '-')|replace('/', '-') }}">{{ v.ship_type_label }}</span></td>
             <td class="muted">{{ v.last_seen.strftime("%Y-%m-%d %H:%M") }}</td>
             <td><a href="{{ url_for('main.vessel_detail', mmsi=v.mmsi) }}" class="link-arrow">View →</a></td>
           </tr>
@@ -54,7 +54,7 @@
     {% else %}
       <div class="empty">
         <p>No vessels match that query.</p>
-        <p class="muted">Try a partial name, or add it to the <a href="{{ url_for('main.track') }}">watchlist</a> so the fetcher prioritizes it.</p>
+        <p class="muted">Try a partial name, or add it to the <a href="{{ url_for('main.track') }}">watchlist</a>.</p>
       </div>
     {% endif %}
   </section>

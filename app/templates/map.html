@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Live map · Neptune{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Live fleet map</h1>
+  <p class="lede">All tracked vessels at their last known position. Click any marker for vessel details.</p>
+</section>
+
+<section class="map-controls">
+  <div class="legend">
+    <span><span class="dot" style="background:#3b82f6"></span> Cargo</span>
+    <span><span class="dot" style="background:#f59e0b"></span> Tanker</span>
+    <span><span class="dot" style="background:#10b981"></span> Passenger</span>
+    <span><span class="dot" style="background:#a855f7"></span> Service</span>
+    <span><span class="dot" style="background:#6b7280"></span> Other</span>
+  </div>
+  <div class="map-status">
+    <span id="vessel-count" class="muted">Loading…</span>
+  </div>
+</section>
+
+<div id="fleet-map" class="map-fullscreen"></div>
+
+<script>
+  (async function () {
+    const map = L.map("fleet-map").setView([38.5, 5.0], 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+      maxZoom: 18,
+    }).addTo(map);
+
+    const res = await fetch("/api/fleet");
+    const fleet = await res.json();
+
+    document.getElementById("vessel-count").textContent =
+      `${fleet.length} vessel${fleet.length === 1 ? "" : "s"} on the map`;
+
+    if (fleet.length === 0) return;
+
+    const bounds = [];
+    fleet.forEach(v => {
+      const marker = L.circleMarker([v.lat, v.lon], {
+        radius: 7,
+        fillColor: v.color,
+        color: "#fff",
+        weight: 1.5,
+        opacity: 1,
+        fillOpacity: 0.9,
+      }).addTo(map);
+
+      const speed = v.sog != null ? `${v.sog.toFixed(1)} kn` : "—";
+      const course = v.cog != null ? `${v.cog.toFixed(0)}°` : "—";
+      marker.bindPopup(
+        `<div class="map-popup">
+          <strong>${v.name}</strong>
+          <div class="muted">${v.type}${v.flag ? " · " + v.flag : ""}</div>
+          <div>Speed: ${speed} · Course: ${course}</div>
+          <div>Status: ${v.status}</div>
+          <a href="/vessel/${v.mmsi}">View details →</a>
+        </div>`
+      );
+      bounds.push([v.lat, v.lon]);
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  })();
+</script>
+{% endblock %}

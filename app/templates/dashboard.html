@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Neptune{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Operations dashboard</h1>
+  <p class="lede">Real-time AIS data from commercial shipping. Every vessel here has reported a position in the last 24 hours.</p>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <div class="stat-value">{{ "{:,}".format(stats.vessels) }}</div>
+    <div class="stat-label">Vessels tracked</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ "{:,}".format(stats.active) }}</div>
+    <div class="stat-label">Active (last hour)</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ "{:,}".format(stats.positions) }}</div>
+    <div class="stat-label">Position reports</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ "{:,}".format(stats.watchlist) }}</div>
+    <div class="stat-label">On watchlist</div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Recently active vessels</h2>
+    <span class="muted">Last 24 hours · most recent first</span>
+  </div>
+
+  {% if vessels %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>MMSI</th>
+        <th>Type</th>
+        <th>Flag</th>
+        <th>Last seen (UTC)</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vessels %}
+      <tr>
+        <td><strong>{{ v.name or "—" }}</strong></td>
+        <td class="mono">{{ v.mmsi }}</td>
+        <td><span class="badge badge-{{ v.ship_type_label|lower|replace(' ', '-')|replace('/', '-') }}">{{ v.ship_type_label }}</span></td>
+        <td>{{ v.flag or "—" }}</td>
+        <td class="muted">{{ v.last_seen.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td><a href="{{ url_for('main.vessel_detail', mmsi=v.mmsi) }}" class="link-arrow">View →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <p>No vessels tracked yet.</p>
+    <p class="muted">Once the AIS fetcher process is running it will populate this dashboard within seconds.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Assistant · Neptune{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Maritime ops assistant</h1>
+  <p class="lede">Ask questions about the fleet, vessels, ports, or operational status. The assistant queries Neptune's live database in real time.</p>
+</section>
+
+<section class="chat-container">
+  <div class="chat-window" id="chat-window">
+    {% if not history %}
+      <div class="chat-welcome">
+        <p><strong>Welcome.</strong> Try asking:</p>
+        <ul class="chat-suggestions">
+          <li><button class="chip" data-q="how many vessels are tracked?">How many vessels are tracked?</button></li>
+          <li><button class="chip" data-q="where is MAERSK SENTOSA?">Where is MAERSK SENTOSA?</button></li>
+          <li><button class="chip" data-q="how many tankers?">How many tankers?</button></li>
+          <li><button class="chip" data-q="what's at Algeciras?">What's at Algeciras?</button></li>
+          <li><button class="chip" data-q="fastest vessel">Fastest vessel</button></li>
+          <li><button class="chip" data-q="largest ship">Largest ship</button></li>
+          <li><button class="chip" data-q="recent activity">Recent activity</button></li>
+        </ul>
+      </div>
+    {% endif %}
+
+    {% for msg in history %}
+      <div class="chat-message chat-{{ msg.role }}">
+        <div class="chat-bubble">{{ msg.content }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <form class="chat-form" id="chat-form">
+    <input
+      type="text"
+      id="chat-input"
+      placeholder="Ask about the fleet…"
+      maxlength="500"
+      autocomplete="off"
+      autofocus
+    />
+    <button type="submit" id="chat-send">Send</button>
+  </form>
+
+  <form method="post" action="{{ url_for('main.assistant_clear') }}" class="chat-clear">
+    <button type="submit" class="link-button">Clear conversation</button>
+  </form>
+</section>
+
+<script>
+  const chatWindow = document.getElementById("chat-window");
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = document.getElementById("chat-input");
+  const chatSend = document.getElementById("chat-send");
+
+  function addMessage(role, content) {
+    const welcome = chatWindow.querySelector(".chat-welcome");
+    if (welcome) welcome.remove();
+    const wrap = document.createElement("div");
+    wrap.className = `chat-message chat-${role}`;
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+    bubble.textContent = content;
+    wrap.appendChild(bubble);
+    chatWindow.appendChild(wrap);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  async function sendMessage(text) {
+    if (!text.trim()) return;
+    addMessage("user", text);
+    chatInput.value = "";
+    chatSend.disabled = true;
+
+    const typing = document.createElement("div");
+    typing.className = "chat-message chat-assistant";
+    typing.innerHTML = '<div class="chat-bubble chat-typing"><span></span><span></span><span></span></div>';
+    chatWindow.appendChild(typing);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    try {
+      const res = await fetch("/assistant/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      typing.remove();
+      if (data.reply) {
+        addMessage("assistant", data.reply);
+      } else {
+        addMessage("assistant", "Something went wrong. Please try again.");
+      }
+    } catch (e) {
+      typing.remove();
+      addMessage("assistant", "Network error. Please try again.");
+    }
+    chatSend.disabled = false;
+    chatInput.focus();
+  }
+
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    sendMessage(chatInput.value);
+  });
+
+  document.querySelectorAll(".chip").forEach(btn => {
+    btn.addEventListener("click", () => sendMessage(btn.dataset.q));
+  });
+
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+</script>
+{% endblock %}

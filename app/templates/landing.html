@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Neptune — Real-time maritime logistics{% endblock %}
+
+{% block content %}
+<section class="landing-hero">
+  <div class="landing-hero-content">
+    <span class="eyebrow">Real-time maritime intelligence</span>
+    <h1>The connective tissue between fleets, ports, and service providers.</h1>
+    <p class="landing-lede">
+      Neptune unifies AIS vessel tracking, port coordination, and third-party service requests
+      onto a single platform — drastically reducing waiting times for cargo, oil, and gas vessels
+      by giving every actor real-time visibility.
+    </p>
+    <div class="landing-cta">
+      <a href="{{ url_for('main.fleet_map') }}" class="btn btn-primary">View live map</a>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Open dashboard</a>
+    </div>
+
+    <div class="landing-stats">
+      <div><span class="big">{{ "{:,}".format(stats.vessels) }}</span><span class="lbl">Vessels tracked</span></div>
+      <div><span class="big">{{ "{:,}".format(stats.active) }}</span><span class="lbl">Active last hour</span></div>
+      <div><span class="big">{{ "{:,}".format(stats.positions) }}</span><span class="lbl">Position reports</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="landing-features">
+  <h2>What Neptune does</h2>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="feature-icon">🚢</div>
+      <h3>Fleet visibility</h3>
+      <p>Live AIS positions for every commercial vessel in your area of operations, with type, flag, dimensions, and current navigational status.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚓</div>
+      <h3>Port coordination</h3>
+      <p>See which vessels are at anchor, moored, or arriving at major Mediterranean ports. Reduce coordination friction between fleet operators and port authorities.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📊</div>
+      <h3>Fleet analytics</h3>
+      <p>Composition by type and flag, navigational status distribution, fleet capacity totals — the dataset behind every operational decision.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🤖</div>
+      <h3>AI ops assistant</h3>
+      <p>Natural-language access to the entire dataset. Ask "where is MSC OSCAR?", "how many tankers?", or "what's at Algeciras?" and get instant answers.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔔</div>
+      <h3>Watchlist alerts</h3>
+      <p>Track specific vessels by name or MMSI. Neptune surfaces them as soon as they appear on the AIS network.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3>Real-time data</h3>
+      <p>WebSocket-driven AIS ingestion with sub-minute latency. Built on Flask, Postgres, and async Python.</p>
+    </div>
+  </div>
+</section>
+
+<section class="landing-target">
+  <h2>Who it's for</h2>
+  <div class="target-grid">
+    <div class="target">
+      <h3>Commercial ports</h3>
+      <p>Berth allocation teams, port authorities, and harbor masters who need to coordinate dozens of arrivals per day across cargo, tanker, and passenger traffic.</p>
+    </div>
+    <div class="target">
+      <h3>Fleet operators</h3>
+      <p>Merchant marine companies tracking ETAs, fuel costs, and port-call efficiency across their fleet — without depending on phone calls or fragmented vendor portals.</p>
+    </div>
+    <div class="target">
+      <h3>Service providers</h3>
+      <p>Bunkering, pilotage, towage, and provisioning agents who need real-time vessel status to plan their own operations.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

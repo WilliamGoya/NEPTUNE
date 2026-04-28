@@ -10,14 +10,18 @@
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
-      <a href="{{ url_for('main.index') }}" class="brand">
+      <a href="{{ url_for('main.landing') }}" class="brand">
         <span class="brand-mark">⚓</span>
         <span class="brand-name">Neptune</span>
       </a>
       <nav class="nav">
-        <a href="{{ url_for('main.index') }}">Dashboard</a>
-        <a href="{{ url_for('main.search') }}">Search</a>
-        <a href="{{ url_for('main.track') }}">Watchlist</a>
+        <a href="{{ url_for('main.dashboard') }}" {% if request.endpoint == 'main.dashboard' %}class="active"{% endif %}>Dashboard</a>
+        <a href="{{ url_for('main.fleet_map') }}" {% if request.endpoint == 'main.fleet_map' %}class="active"{% endif %}>Live map</a>
+        <a href="{{ url_for('main.ports') }}" {% if request.endpoint == 'main.ports' %}class="active"{% endif %}>Ports</a>
+        <a href="{{ url_for('main.fleet_analytics') }}" {% if request.endpoint == 'main.fleet_analytics' %}class="active"{% endif %}>Fleet</a>
+        <a href="{{ url_for('main.search') }}" {% if request.endpoint == 'main.search' %}class="active"{% endif %}>Search</a>
+        <a href="{{ url_for('main.track') }}" {% if request.endpoint == 'main.track' %}class="active"{% endif %}>Watchlist</a>
+        <a href="{{ url_for('main.assistant_page') }}" {% if request.endpoint == 'main.assistant_page' %}class="active"{% endif %}>Assistant</a>
       </nav>
     </div>
   </header>

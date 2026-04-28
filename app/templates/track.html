@@ -8,18 +8,9 @@
 </section>
 
 <section class="panel">
-  <div class="panel-header">
-    <h2>Add a vessel</h2>
-  </div>
+  <div class="panel-header"><h2>Add a vessel</h2></div>
   <form method="post" action="{{ url_for('main.track') }}" class="track-form">
-    <input
-      type="text"
-      name="query"
-      placeholder="Vessel name or 9-digit MMSI"
-      required
-      maxlength="120"
-      autofocus
-    />
+    <input type="text" name="query" placeholder="Vessel name or 9-digit MMSI" required maxlength="120" autofocus />
     <button type="submit">Add to watchlist</button>
   </form>
 </section>
@@ -33,12 +24,7 @@
   {% if entries %}
   <table class="table">
     <thead>
-      <tr>
-        <th>Query</th>
-        <th>Submitted</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
+      <tr><th>Query</th><th>Submitted</th><th>Status</th><th></th></tr>
     </thead>
     <tbody>
       {% for e in entries %}
